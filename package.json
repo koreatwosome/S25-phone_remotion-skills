@@ -1,0 +1,38 @@
+{
+  "name": "claude-code-remotion-skills",
+  "version": "1.0.0",
+  "description": "Claude Code Skills - Remotion Video",
+  "main": "index.js",
+  "scripts": {
+    "start": "remotion studio src/Root.tsx",
+    "build": "remotion render src/Root.tsx ClaudeCodeSkills output/claude-code-skills.mp4",
+    "render": "ts-node src/render.ts",
+    "preview": "remotion preview src/Root.tsx",
+    "test": "echo \"No tests specified\""
+  },
+  "keywords": [
+    "remotion",
+    "claude",
+    "ai",
+    "code"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@remotion/bundler": "^4.0.431",
+    "@remotion/cli": "^4.0.431",
+    "@remotion/renderer": "^4.0.431",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "remotion": "^4.0.431",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2"
+  },
+  "remotion": {
+    "entryPoint": "src/Root.tsx"
+  }
+}
