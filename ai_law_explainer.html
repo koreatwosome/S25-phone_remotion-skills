@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 기본법의 이해 — 규제의 새로운 문법</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0a12;
+    --surface: #12121e;
+    --accent: #4f8eff;
+    --accent2: #ff6b4f;
+    --accent3: #4fffb0;
+    --text: #e8e8f0;
+    --muted: #6a6a88;
+    --card: #1a1a2e;
+    --duration: 120; /* total seconds */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* ── PLAYER WRAPPER ── */
+  .player-wrap {
+    width: 100%;
+    max-width: 900px;
+  }
+
+  .player-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+
+  /* ── CANVAS ── */
+  .canvas {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: var(--surface);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #ffffff0f;
+    box-shadow: 0 40px 100px #00000088;
+  }
+
+  /* Animated background grid */
+  .canvas::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(79,142,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,142,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 20s linear infinite;
+  }
+
+  @keyframes gridMove {
+    0% { transform: translate(0,0); }
+    100% { transform: translate(40px, 40px); }
+  }
+
+  /* ── SCENE SYSTEM ── */
+  .scene {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+
+  .scene.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ── SCENE 0: TITLE ── */
+  .s0-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    border: 1px solid var(--accent);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+  @keyframes pulseGlow {
+    0%,100% { box-shadow: 0 0 0 0 rgba(79,142,255,0.3); }
+    50% { box-shadow: 0 0 0 8px rgba(79,142,255,0); }
+  }
+
+  .s0-title {
+    font-size: clamp(28px, 4.5vw, 52px);
+    font-weight: 900;
+    text-align: center;
+    line-height: 1.15;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, var(--accent3) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 16px;
+  }
+
+  .s0-sub {
+    font-size: clamp(12px, 1.6vw, 18px);
+    color: var(--muted);
+    text-align: center;
+    font-weight: 300;
+  }
+
+  .s0-law-tag {
+    margin-top: 28px;
+    background: rgba(79,142,255,0.1);
+    border: 1px solid rgba(79,142,255,0.2);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: clamp(10px, 1.2vw, 13px);
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  /* ── SCENE 1: Why AI Law ── */
+  .s1-row {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .icon-card {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid #ffffff08;
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .icon-card .ico {
+    font-size: clamp(24px, 3.5vw, 40px);
+  }
+
+  .icon-card .label {
+    font-size: clamp(9px, 1.2vw, 13px);
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .icon-card .val {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(10px, 1.3vw, 14px);
+    color: var(--accent2);
+    font-weight: 700;
+  }
+
+  .scene-heading {
+    font-size: clamp(16px, 2.5vw, 28px);
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #fff;
+  }
+
+  .scene-heading span { color: var(--accent); }
+
+  /* ── SCENE 2: Risk Pyramid ── */
+  .pyramid-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .pyramid-tier {
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #fff;
+    font-size: clamp(9px, 1.3vw, 14px);
+    text-align: center;
+    padding: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pyramid-tier::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+    animation: shimmer 2s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .tier-ban { width: 40%; background: linear-gradient(135deg, #ff4f4f, #c0392b); }
+  .tier-high { width: 65%; background: linear-gradient(135deg, #ff914f, #e67e22); }
+  .tier-low { width: 90%; background: linear-gradient(135deg, #4f8eff, #2980b9); }
+
+  .tier-label-right {
+    position: absolute;
+    right: -120px;
+    font-size: clamp(8px, 1vw, 11px);
+    color: var(--muted);
+    text-align: left;
+    width: 110px;
+    font-weight: 300;
+  }
+
+  /* ── SCENE 3: 3 Actors ── */
+  .actor-grid {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .actor-card {
+    flex: 1;
+    background: var(--card);
+    border-radius: 10px;
+    padding: 16px 12px;
+    border-top: 3px solid transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .actor-card.dev { border-color: var(--accent3); }
+  .actor-card.dep { border-color: var(--accent); }
+  .actor-card.usr { border-color: var(--accent2); }
+
+  .actor-name {
+    font-size: clamp(11px, 1.5vw, 15px);
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .actor-def {
+    font-size: clamp(8px, 1vw, 11px);
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .actor-ex {
+    font-size: clamp(7px, 0.95vw, 10px);
+    color: var(--accent);
+    margin-top: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ── SCENE 4: High-Impact AI ── */
+  .domains-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+
+  .domain-chip {
+    background: var(--card);
+    border: 1px solid rgba(255,107,79,0.2);
+    border-radius: 8px;
+    padding: 10px 6px;
+    text-align: center;
+    font-size: clamp(8px, 1vw, 11px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .domain-chip:hover {
+    border-color: var(--accent2);
+    transform: translateY(-2px);
+  }
+
+  .domain-chip .d-ico { font-size: clamp(16px, 2.2vw, 26px); }
+  .domain-chip .d-txt { color: var(--muted); }
+
+  /* ── SCENE 5: 5 Obligations ── */
+  .obligations {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .ob-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+
+  .ob-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent3);
+    min-width: 28px;
+  }
+
+  .ob-text {
+    font-size: clamp(9px, 1.2vw, 13px);
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .ob-sub {
+    font-size: clamp(7px, 0.9vw, 10px);
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── SCENE 6: Generative AI ── */
+  .gen-ai-wrap {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+  }
+
+  .gen-panel {
+    flex: 1;
+    background: var(--card);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .gen-panel-title {
+    font-size: clamp(10px, 1.3vw, 14px);
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--accent3);
+  }
+
+  .chat-bubble {
+    background: rgba(79,142,255,0.1);
+    border: 1px solid rgba(79,142,255,0.2);
+    border-radius: 8px 8px 8px 2px;
+    padding: 8px 10px;
+    font-size: clamp(8px, 1vw, 11px);
+    color: var(--text);
+    margin-bottom: 8px;
+    position: relative;
+  }
+
+  .ai-badge-inline {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-right: 4px;
+    letter-spacing: 1px;
+  }
+
+  .watermark-demo {
+    position: relative;
+    background: #1e2a3a;
+    border-radius: 6px;
+    padding: 8px;
+    overflow: hidden;
+  }
+
+  .watermark-demo img, .watermark-demo .fake-img {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: linear-gradient(135deg, #2a3a4a, #3a4a5a);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .wm-label {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: rgba(79,255,176,0.2);
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+    font-size: 8px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ── SCENE 7: Global ── */
+  .globe-grid {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .globe-card {
+    flex: 1;
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .gc-eu { background: linear-gradient(135deg, rgba(79,142,255,0.15), rgba(79,142,255,0.05)); border: 1px solid rgba(79,142,255,0.25); }
+  .gc-us { background: linear-gradient(135deg, rgba(79,255,176,0.15), rgba(79,255,176,0.05)); border: 1px solid rgba(79,255,176,0.25); }
+  .gc-kr { background: linear-gradient(135deg, rgba(255,107,79,0.15), rgba(255,107,79,0.05)); border: 1px solid rgba(255,107,79,0.25); }
+
+  .gc-flag { font-size: 24px; }
+  .gc-name { font-size: clamp(11px, 1.5vw, 16px); font-weight: 700; color: #fff; }
+  .gc-detail { font-size: clamp(8px, 1vw, 11px); color: var(--muted); line-height: 1.5; }
+  .gc-penalty { font-family: 'Space Mono', monospace; font-size: clamp(8px, 1vw, 11px); color: var(--accent2); font-weight: 700; }
+
+  /* ── SCENE 8: CALL TO ACTION ── */
+  .cta-wrap {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .cta-title {
+    font-size: clamp(20px, 3.5vw, 40px);
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--accent3), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .cta-steps {
+    display: flex;
+    gap: 12px;
+  }
+
+  .cta-step {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: clamp(8px, 1.1vw, 12px);
+    text-align: left;
+    border-left: 3px solid var(--accent3);
+    color: var(--muted);
+    max-width: 180px;
+  }
+
+  .cta-step strong { color: #fff; display: block; margin-bottom: 4px; }
+
+  /* ── SUBTITLE ── */
+  .subtitle-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.92));
+    padding: 30px 30px 18px;
+    min-height: 70px;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .subtitle-text {
+    font-size: clamp(12px, 1.8vw, 20px);
+    font-weight: 400;
+    color: #fff;
+    line-height: 1.5;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    transition: opacity 0.3s;
+  }
+
+  .subtitle-text em {
+    color: var(--accent);
+    font-style: normal;
+    font-weight: 700;
+  }
+
+  /* ── CONTROLS ── */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0 4px;
+  }
+
+  .btn {
+    background: var(--card);
+    border: 1px solid #ffffff12;
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .btn:hover { background: #1e2040; border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { background: #3a78ee; }
+
+  .progress-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: #ffffff12;
+    border-radius: 4px;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    border-radius: 4px;
+    transition: width 0.1s linear;
+    width: 0%;
+  }
+
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .p-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .scene-nav {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    padding: 10px 0 0;
+  }
+
+  .scene-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ffffff15;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.3s;
+  }
+
+  .scene-dot.active {
+    background: var(--accent);
+    transform: scale(1.4);
+  }
+
+  /* ── SCENE TRANSITION ENTRANCE ── */
+  .scene.active .scene-heading,
+  .scene.active .s0-title,
+  .scene.active .s0-badge,
+  .scene.active .s1-row,
+  .scene.active .pyramid-wrap,
+  .scene.active .actor-grid,
+  .scene.active .domains-grid,
+  .scene.active .obligations,
+  .scene.active .gen-ai-wrap,
+  .scene.active .globe-grid,
+  .scene.active .cta-wrap {
+    animation: slideUp 0.5s ease forwards;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .scene.active .s0-badge { animation-delay: 0.1s; opacity: 0; }
+  .scene.active .s0-title { animation-delay: 0.25s; opacity: 0; }
+  .scene.active .s0-sub { animation: slideUp 0.5s 0.4s ease forwards; opacity: 0; }
+  .scene.active .s0-law-tag { animation: slideUp 0.5s 0.55s ease forwards; opacity: 0; }
+
+  /* ── COUNTER ANIMATION ── */
+  .counter-anim {
+    animation: countUp 1s ease forwards;
+  }
+  @keyframes countUp {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<div class="player-wrap">
+  <div class="player-title">▶ EXPLAINER · AI 기본법 · 2025</div>
+
+  <div class="canvas" id="canvas">
+
+    <!-- BG grid is ::before -->
+
+    <!-- ──────────────── SCENE 0: TITLE ──────────────── -->
+    <div class="scene active" id="scene-0">
+      <div class="s0-badge">2025 AI 기본법</div>
+      <div class="s0-title">AI 기본법의 이해<br>규제의 새로운 문법</div>
+      <div class="s0-sub">기업과 개발자가 반드시 알아야 할 핵심 내용 2분 정리</div>
+      <div class="s0-law-tag">「인공지능 발전과 신뢰 기반 조성 등에 관한 기본법」 2025 시행</div>
+    </div>
+
+    <!-- ──────────────── SCENE 1: WHY ──────────────── -->
+    <div class="scene" id="scene-1">
+      <div class="scene-heading">왜 <span>AI 기본법</span>이 필요했을까요?</div>
+      <div class="s1-row">
+        <div class="icon-card">
+          <div class="ico">🤖</div>
+          <div class="val">ChatGPT</div>
+          <div class="label">2022년 출시 후<br>생성형 AI 폭발</div>
+        </div>
+        <div class="icon-card">
+          <div class="ico">⚡</div>
+          <div class="val">기술 > 법</div>
+          <div class="label">기술 발전 속도가<br>법률을 압도</div>
+        </div>
+        <div class="icon-card">
+          <div class="ico">🎭</div>
+          <div class="val">딥페이크</div>
+          <div class="label">금융사기·차별<br>문제 확산</div>
+        </div>
+        <div class="icon-card">
+          <div class="ico">🏛️</div>
+          <div class="val">입법 필요</div>
+          <div class="label">윤리 권고만으로<br>해결 불가</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────── SCENE 2: RISK TIERS ──────────────── -->
+    <div class="scene" id="scene-2">
+      <div class="scene-heading"><span>위험 기반</span> 접근법 — 3단계 규제</div>
+      <div class="pyramid-wrap">
+        <div class="pyramid-tier tier-ban">
+          ⛔ 금지된 AI<br><span style="font-size:0.75em;font-weight:400">실시간 생체인식 등 — 개발·사용 원천 금지</span>
+        </div>
+        <div class="pyramid-tier tier-high">
+          🔴 고위험 AI<br><span style="font-size:0.75em;font-weight:400">의료·채용·금융·사법 — 사전 규제</span>
+        </div>
+        <div class="pyramid-tier tier-low">
+          🟢 저위험 AI<br><span style="font-size:0.75em;font-weight:400">스팸 필터·번역기 등 — 우선 허용, 사후 규제</span>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:clamp(9px,1.1vw,12px);color:var(--muted);text-align:center">
+        핵심 원칙: <span style="color:#fff;font-weight:700">"돈을 벌어도 좋지만, 사람을 다치게 하거나 차별해서는 안 된다."</span>
+      </div>
+    </div>
+
+    <!-- ──────────────── SCENE 3: 3 ACTORS ──────────────── -->
+    <div class="scene" id="scene-3">
+      <div class="scene-heading">누가 규제를 받나요? <span>3가지 사업자 유형</span></div>
+      <div class="actor-grid">
+        <div class="actor-card dev">
+          <div class="actor-name">🔬 개발사업자</div>
+          <div class="actor-def">AI를 직접 연구·개발하거나 상당한 수준으로 변경하여 제공하는 자</div>
+          <div class="actor-ex">예: Llama를 파인튜닝해 서비스 제공</div>
+        </div>
+        <div class="actor-card dep">
+          <div class="actor-name">🚀 이용사업자</div>
+          <div class="actor-def">개발된 AI를 자신의 서비스에 접목하여 최종 소비자에게 제공하는 자</div>
+          <div class="actor-ex">예: ChatGPT API로 법률 챗봇 운영</div>
+        </div>
+        <div class="actor-card usr">
+          <div class="actor-name">👤 이용자</div>
+          <div class="actor-def">실제로 AI 서비스를 사용하는 일반 사용자 — 보호의 대상</div>
+          <div class="actor-ex">소비자 보호법 적용</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:clamp(8px,1vw,11px);color:var(--muted);text-align:center">
+        ⚠️ 이용사업자는 1차 책임 주체 — 소비자 피해 발생 시 이용사업자가 먼저 책임을 집니다
+      </div>
+    </div>
+
+    <!-- ──────────────── SCENE 4: HIGH-IMPACT ──────────────── -->
+    <div class="scene" id="scene-4">
+      <div class="scene-heading"><span>고영향 AI</span> — 어떤 분야가 해당되나요?</div>
+      <div class="domains-grid">
+        <div class="domain-chip"><div class="d-ico">🏥</div><div class="d-txt">의료·의료기기</div></div>
+        <div class="domain-chip"><div class="d-ico">💰</div><div class="d-txt">금융·대출심사</div></div>
+        <div class="domain-chip"><div class="d-ico">💼</div><div class="d-txt">채용·인사</div></div>
+        <div class="domain-chip"><div class="d-ico">⚖️</div><div class="d-txt">범죄수사·사법</div></div>
+        <div class="domain-chip"><div class="d-ico">🚗</div><div class="d-txt">자율주행·교통</div></div>
+        <div class="domain-chip"><div class="d-ico">⚛️</div><div class="d-txt">원자력·에너지</div></div>
+        <div class="domain-chip"><div class="d-ico">🏛️</div><div class="d-txt">공공서비스·복지</div></div>
+        <div class="domain-chip"><div class="d-ico">💧</div><div class="d-txt">수도·인프라</div></div>
+      </div>
+      <div style="margin-top:12px;font-size:clamp(9px,1.1vw,12px);color:var(--accent2);text-align:center;font-weight:700">
+        → 해당되면 5대 의무 이행이 <u>법적 필수</u>입니다!
+      </div>
+    </div>
+
+    <!-- ──────────────── SCENE 5: 5 OBLIGATIONS ──────────────── -->
+    <div class="scene" id="scene-5">
+      <div class="scene-heading">고영향 AI의 <span>5대 의무</span></div>
+      <div class="obligations">
+        <div class="ob-row">
+          <div class="ob-num">01</div>
+          <div>
+            <div class="ob-text">⚙️ 위험 관리 시스템 구축</div>
+            <div class="ob-sub">데이터 편향성 검사 · 오류율 관리 · 사이버 보안</div>
+          </div>
+        </div>
+        <div class="ob-row">
+          <div class="ob-num">02</div>
+          <div>
+            <div class="ob-text">🔍 설명 가능성 확보 (XAI)</div>
+            <div class="ob-sub">"왜 대출이 거절됐나요?" — 주요 결정 요인을 이용자에게 설명</div>
+          </div>
+        </div>
+        <div class="ob-row">
+          <div class="ob-num">03</div>
+          <div>
+            <div class="ob-text">👁 인간의 감독 (Human Oversight)</div>
+            <div class="ob-sub">Human-in-the-loop · Kill Switch · 모니터링 의무</div>
+          </div>
+        </div>
+        <div class="ob-row">
+          <div class="ob-num">04</div>
+          <div>
+            <div class="ob-text">📋 기록 보존 및 로깅</div>
+            <div class="ob-sub">언제, 어떤 데이터로, 어떤 판단을? — 최소 6개월 보관 권장</div>
+          </div>
+        </div>
+        <div class="ob-row">
+          <div class="ob-num">05</div>
+          <div>
+            <div class="ob-text">✅ 품질 관리 체계</div>
+            <div class="ob-sub">ISO 9001처럼 AI 개발·운영 절차 표준화 매뉴얼 구비</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────── SCENE 6: GENERATIVE AI ──────────────── -->
+    <div class="scene" id="scene-6">
+      <div class="scene-heading"><span>생성형 AI</span> 투명성 의무 — "저는 AI입니다"</div>
+      <div class="gen-ai-wrap">
+        <div class="gen-panel">
+          <div class="gen-panel-title">📢 사전 고지 의무</div>
+          <div class="chat-bubble">
+            <span class="ai-badge-inline">AI</span>안녕하세요! 무엇을 도와드릴까요?
+          </div>
+          <div style="font-size:clamp(8px,1vw,11px);color:var(--muted);line-height:1.6">
+            ✅ 대화 시작 전 "AI 챗봇"임을 <strong style="color:#fff">명확하게</strong> 표시 필수<br>
+            ❌ 이용약관 구석 작은 글씨 → 법 위반 소지<br><br>
+            음성 상담 시: <span style="color:var(--accent)">"저는 인공지능 상담원입니다"</span> 멘트 필수
+          </div>
+        </div>
+        <div class="gen-panel">
+          <div class="gen-panel-title">🖼️ 워터마킹 의무</div>
+          <div class="watermark-demo">
+            <div class="fake-img" style="display:flex;align-items:center;justify-content:center;color:#4a5a6a;font-size:13px">AI 생성 이미지</div>
+            <div class="wm-label">AI-GENERATED</div>
+          </div>
+          <div style="margin-top:8px;font-size:clamp(8px,1vw,11px);color:var(--muted);line-height:1.6">
+            이미지·영상: 눈에 보이는 워터마크 + 메타데이터<br>
+            딥페이크: <span style="color:var(--accent2);font-weight:700">예외 없는</span> 표시 의무<br>위반 시 → 형법상 사기죄까지 가중처벌 가능
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────── SCENE 7: GLOBAL ──────────────── -->
+    <div class="scene" id="scene-7">
+      <div class="scene-heading">글로벌 <span>AI 규제</span> 지형도</div>
+      <div class="globe-grid">
+        <div class="globe-card gc-eu">
+          <div class="gc-flag">🇪🇺</div>
+          <div class="gc-name">EU AI Act</div>
+          <div class="gc-detail">세계 최초·최고 강도<br>4단계 위험 등급<br>역외 적용 (한국 기업도 해당)</div>
+          <div class="gc-penalty">위반 시 매출 7% 또는<br>3,500만 유로</div>
+        </div>
+        <div class="globe-card gc-us">
+          <div class="gc-flag">🇺🇸</div>
+          <div class="gc-name">미국 (자율규제)</div>
+          <div class="gc-detail">산업별 가이드라인<br>NIST AI RMF (사실상 글로벌 표준)<br>자율 규제 + 산업 협조</div>
+          <div class="gc-penalty">포괄적 연방법 없음<br>주별 규제 상이</div>
+        </div>
+        <div class="globe-card gc-kr">
+          <div class="gc-flag">🇰🇷</div>
+          <div class="gc-name">한국 AI 기본법</div>
+          <div class="gc-detail">위험 기반 접근<br>고영향 AI 사전 규제<br>AI 안전연구소 신설</div>
+          <div class="gc-penalty">브뤼셀 효과:<br>EU 기준 따라가는 추세</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────── SCENE 8: CTA ──────────────── -->
+    <div class="scene" id="scene-8">
+      <div class="cta-wrap">
+        <div style="font-size:clamp(10px,1.3vw,14px);color:var(--muted);letter-spacing:3px;text-transform:uppercase;font-family:'Space Mono',monospace">Action Plan</div>
+        <div class="cta-title">지금 바로 시작하세요</div>
+        <div class="cta-steps">
+          <div class="cta-step">
+            <strong>Step 1. 자가 진단</strong>
+            우리 서비스가 고영향 AI에 해당하는지 8대 영역 체크리스트 확인
+          </div>
+          <div class="cta-step">
+            <strong>Step 2. 거버넌스 구축</strong>
+            AI 거버넌스 위원회 설치 · 3단계 방어선 모델 적용
+          </div>
+          <div class="cta-step">
+            <strong>Step 3. 전문가 자문</strong>
+            AI 기본법 + 금융·개인정보 특별법 중복 적용 법률 검토 필수
+          </div>
+        </div>
+        <div style="font-size:clamp(9px,1.1vw,12px);color:var(--muted);margin-top:8px">
+          ⚠️ 위반 시 → 과태료 · 시정명령 · <span style="color:var(--accent2);font-weight:700">영업 정지</span>까지 가능
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBTITLE BAR -->
+    <div class="subtitle-bar">
+      <div class="subtitle-text" id="subtitle">▶ 재생 버튼을 눌러 영상을 시작하세요</div>
+    </div>
+
+  </div><!-- /canvas -->
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <button class="btn primary" id="playBtn" onclick="togglePlay()">▶ 재생</button>
+    <button class="btn" onclick="restart()">↺ 처음</button>
+    <div class="progress-wrap">
+      <div class="progress-bar" onclick="seekBar(event)">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-labels">
+        <span class="p-label" id="timeLabel">0:00</span>
+        <span class="p-label">2:00</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene-nav" id="sceneNav"></div>
+
+</div><!-- /player-wrap -->
+
+<script>
+const TOTAL = 120; // 2 minutes total
+
+// Scene definitions: [startSec, endSec, subtitles[]]
+// Each subtitle: [relStartSec, relEndSec, html]
+const SCENES = [
+  {
+    start: 0, end: 14,
+    subs: [
+      [0, 5, "안녕하세요. 오늘은 <em>AI 기본법</em>의 핵심 내용을 2분 안에 정리해 드립니다."],
+      [5, 10, "공식 명칭은 「인공지능 발전과 신뢰 기반 조성 등에 관한 기본법」입니다."],
+      [10, 14, "기업, 개발자, 법무팀 모두 반드시 알아야 할 <em>규제의 새로운 문법</em>을 알아볼게요."]
+    ]
+  },
+  {
+    start: 14, end: 28,
+    subs: [
+      [0, 5, "2022년 ChatGPT 출시 이후 <em>생성형 AI</em>가 폭발적으로 성장했습니다."],
+      [5, 9, "딥페이크 금융사기, 편향된 신용평가, 블랙박스 모델 등 <em>문제가 속출</em>했습니다."],
+      [9, 14, "윤리적 권고만으로는 해결이 불가능해졌고, 결국 <em>법률 규제</em>가 필요해졌습니다."]
+    ]
+  },
+  {
+    start: 28, end: 43,
+    subs: [
+      [0, 5, "AI 기본법의 핵심 철학은 <em>위험 기반 접근(Risk-based Approach)</em>입니다."],
+      [5, 9, "<em>저위험 AI</em>는 '우선 허용, 사후 규제' 원칙을 적용합니다. (예: 번역기, 스팸필터)"],
+      [9, 12, "<em>고위험 AI</em>는 생명·안전·기본권에 영향을 미치므로 사전 규제를 받습니다."],
+      [12, 15, "<em>금지된 AI</em>는 개발과 사용 자체가 원천적으로 금지됩니다."]
+    ]
+  },
+  {
+    start: 43, end: 58,
+    subs: [
+      [0, 5, "법은 책임 주체를 명확히 하기 위해 사업자를 세 가지로 구분합니다."],
+      [5, 9, "<em>개발사업자</em>는 AI를 직접 만들거나 상당히 변경하여 제공하는 기업입니다."],
+      [9, 12, "<em>이용사업자</em>는 기존 AI API를 받아 자신의 서비스에 접목하는 기업입니다."],
+      [12, 15, "중요한 점은, 이용사업자가 <em>소비자와의 1차 책임</em>을 집니다."]
+    ]
+  },
+  {
+    start: 58, end: 72,
+    subs: [
+      [0, 4, "어떤 분야가 <em>고영향 AI</em>에 해당될까요?"],
+      [4, 8, "의료, 금융·대출심사, 채용·인사, 범죄수사·사법 등 8대 영역이 포함됩니다."],
+      [8, 11, "자율주행, 원자력, 공공서비스, 수도 인프라도 해당됩니다."],
+      [11, 14, "이 영역에 해당하면 <em>5대 의무 이행이 법적으로 필수</em>입니다!"]
+    ]
+  },
+  {
+    start: 72, end: 86,
+    subs: [
+      [0, 4, "고영향 AI 사업자가 이행해야 할 <em>5대 핵심 의무</em>를 살펴봅니다."],
+      [4, 7, "첫째, <em>위험 관리 시스템</em> 구축 — 데이터 편향성 검사와 사이버 보안."],
+      [7, 9, "둘째, <em>설명 가능성(XAI)</em> — '왜 대출이 거절됐는지' 이용자에게 설명해야 합니다."],
+      [9, 11, "셋째, <em>인간의 감독</em> — Kill Switch와 Human-in-the-loop 구조가 필요합니다."],
+      [11, 13, "넷째 <em>로그 기록</em>, 다섯째 <em>품질 관리</em> 체계도 갖춰야 합니다."]
+    ]
+  },
+  {
+    start: 86, end: 100,
+    subs: [
+      [0, 4, "생성형 AI에는 <em>투명성 의무</em>가 별도로 적용됩니다."],
+      [4, 8, "챗봇·AI 콜센터는 서비스 시작 시 반드시 <em>'저는 AI입니다'</em>라고 밝혀야 합니다."],
+      [8, 11, "AI가 생성한 이미지·영상에는 <em>워터마크</em>를 삽입해야 합니다."],
+      [11, 14, "딥페이크를 허가 없이 제작·유포하면 <em>형사 처벌</em>까지 받을 수 있습니다."]
+    ]
+  },
+  {
+    start: 100, end: 112,
+    subs: [
+      [0, 4, "한국 기업이 글로벌 서비스를 운영한다면 <em>해외 규제</em>도 함께 챙겨야 합니다."],
+      [4, 8, "<em>EU AI Act</em>는 위반 시 매출의 7%까지 벌금이 부과되며, 한국 기업에도 적용됩니다."],
+      [8, 12, "<em>미국 NIST AI RMF</em>는 사실상 글로벌 표준이 되고 있습니다."],
+      [12, 14, "'브뤼셀 효과'로 인해 EU 기준이 전 세계 AI 규제를 주도하고 있습니다."]
+    ]
+  },
+  {
+    start: 112, end: 120,
+    subs: [
+      [0, 4, "지금 바로 세 가지 액션을 실행하세요."],
+      [4, 7, "우선 <em>고영향 AI 자가 진단</em>으로 우리 서비스의 적용 여부를 확인하세요."],
+      [7, 10, "<em>AI 거버넌스 위원회</em>를 설치하고 3단계 방어선 모델을 적용하세요."],
+      [10, 12, "마지막으로 <em>법률 전문가 자문</em>을 통해 중복 규제 이슈를 반드시 검토하세요."]
+    ]
+  }
+];
+
+let currentTime = 0;
+let playing = false;
+let raf = null;
+let lastTs = null;
+
+// Build scene dots
+const nav = document.getElementById('sceneNav');
+SCENES.forEach((_, i) => {
+  const dot = document.createElement('div');
+  dot.className = 'scene-dot' + (i === 0 ? ' active' : '');
+  dot.onclick = () => seekTo(SCENES[i].start);
+  dot.id = 'dot-' + i;
+  nav.appendChild(dot);
+});
+
+function getSceneIdx(t) {
+  for (let i = SCENES.length - 1; i >= 0; i--) {
+    if (t >= SCENES[i].start) return i;
+  }
+  return 0;
+}
+
+function getSubtitle(sceneIdx, t) {
+  const scene = SCENES[sceneIdx];
+  const rel = t - scene.start;
+  for (let i = scene.subs.length - 1; i >= 0; i--) {
+    const [s, e, txt] = scene.subs[i];
+    if (rel >= s && rel < e) return txt;
+  }
+  return scene.subs[scene.subs.length - 1]?.[2] || '';
+}
+
+let lastSceneIdx = -1;
+let lastSubText = '';
+
+function render(ts) {
+  if (!playing) return;
+  if (lastTs !== null) {
+    currentTime += (ts - lastTs) / 1000;
+  }
+  lastTs = ts;
+
+  if (currentTime >= TOTAL) {
+    currentTime = TOTAL;
+    playing = false;
+    document.getElementById('playBtn').textContent = '▶ 재생';
+    lastTs = null;
+  }
+
+  // Update progress
+  const pct = (currentTime / TOTAL) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  const s = Math.floor(currentTime);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  document.getElementById('timeLabel').textContent = m + ':' + String(sec).padStart(2, '0');
+
+  // Update scene
+  const idx = getSceneIdx(currentTime);
+  if (idx !== lastSceneIdx) {
+    document.querySelectorAll('.scene').forEach((el, i) => {
+      el.classList.toggle('active', i === idx);
+    });
+    document.querySelectorAll('.scene-dot').forEach((el, i) => {
+      el.classList.toggle('active', i === idx);
+    });
+    lastSceneIdx = idx;
+  }
+
+  // Update subtitle
+  const sub = getSubtitle(idx, currentTime);
+  if (sub !== lastSubText) {
+    document.getElementById('subtitle').innerHTML = sub;
+    lastSubText = sub;
+  }
+
+  if (playing) raf = requestAnimationFrame(render);
+}
+
+function togglePlay() {
+  playing = !playing;
+  document.getElementById('playBtn').textContent = playing ? '⏸ 일시정지' : '▶ 재생';
+  if (playing) {
+    lastTs = null;
+    raf = requestAnimationFrame(render);
+  } else {
+    cancelAnimationFrame(raf);
+  }
+}
+
+function restart() {
+  cancelAnimationFrame(raf);
+  playing = false;
+  currentTime = 0;
+  lastTs = null;
+  lastSceneIdx = -1;
+  lastSubText = '';
+  document.getElementById('playBtn').textContent = '▶ 재생';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('timeLabel').textContent = '0:00';
+  document.querySelectorAll('.scene').forEach((el, i) => el.classList.toggle('active', i === 0));
+  document.querySelectorAll('.scene-dot').forEach((el, i) => el.classList.toggle('active', i === 0));
+  document.getElementById('subtitle').innerHTML = '▶ 재생 버튼을 눌러 영상을 시작하세요';
+}
+
+function seekTo(t) {
+  currentTime = Math.min(Math.max(t, 0), TOTAL);
+  lastTs = null;
+  const idx = getSceneIdx(currentTime);
+  document.querySelectorAll('.scene').forEach((el, i) => el.classList.toggle('active', i === idx));
+  document.querySelectorAll('.scene-dot').forEach((el, i) => el.classList.toggle('active', i === idx));
+  lastSceneIdx = idx;
+  document.getElementById('progressFill').style.width = (currentTime / TOTAL * 100) + '%';
+}
+
+function seekBar(e) {
+  const bar = e.currentTarget;
+  const rect = bar.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  seekTo(pct * TOTAL);
+}
+</script>
+</body>
+</html>
